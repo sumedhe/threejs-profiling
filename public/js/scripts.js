@@ -8,7 +8,6 @@ var DIST_DOWN  = 250;
 var DIST_LEFT  = 2000;
 var DIST_RIGHT = 2000;
 
-var NO_OF_PARROTS = 50;
 var FLY_SPEED     = 4;
 var FLY_DURATION  = 0.7;
 
@@ -24,9 +23,9 @@ var windowHalfY = window.innerHeight / 2;
 var spheres, mixer, morphs = [];
 
 var modelSelection = [
-    { name: "Flamingo", count: 20 },
-    { name: "Parrot", count: 20 },
-    { name: "Horse", count: 10, onGround: true },
+    { name: "Flamingo", count: 100 },
+    { name: "Parrot", count: 100 },
+    { name: "Horse", count: 100, onGround: true },
 ]
 
 var clock = new THREE.Clock();
@@ -109,7 +108,7 @@ function createObjects() {
             var mesh = gltf.scene.children[ 0 ];
             var clip = gltf.animations[ 0 ];
     
-            for ( var i = 0; i <= item.count; ++i ) {
+            for ( var i = 0; i < item.count; ++i ) {
                 var x = Math.random() * (DIST_RIGHT + DIST_LEFT) - DIST_LEFT;
                 var y = Math.random() * DIST_UP - 100;
                 var z = - Math.random() * (DIST_FRONT - DIST_BACK) - DIST_BACK;
