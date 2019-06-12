@@ -13,7 +13,7 @@ var FLY_SPEED     = 3;
 var FLY_DURATION  = 0.7;
 
 var scene, camera, renderer;
-var cubeTexture;
+var cubeTexture, gltfLoader, stats;
 
 var mouseX = 0;
 var mouseY = 0;
@@ -22,6 +22,11 @@ var windowHalfX = window.innerWidth / 2;
 var windowHalfY = window.innerHeight / 2;
 
 var spheres, mixer, morphs = [];
+
+var modelSelection = [
+    { name: "Flamingo", count: 20 },
+    { name: "Parrot", count: 20 }
+]
 
 var clock = new THREE.Clock();
 
@@ -39,7 +44,7 @@ function init() {
 function animate() {
     requestAnimationFrame( animate );
     render();
-	renderer.render(scene, camera);
+    stats.update();
 };
 
 function createScene(){
@@ -54,7 +59,10 @@ function createScene(){
     renderer.gammaFactor = 1.5;
     renderer.autoClear   = false;
     renderer.setSize( window.innerWidth, window.innerHeight );
-    document.body.appendChild( renderer.domElement );
+
+    container = document.createElement( 'div' );
+    document.body.appendChild( container );
+    container.appendChild( renderer.domElement );
 
     // Add lights
     var ambient = new THREE.AmbientLight( 0x444444 );
@@ -68,6 +76,9 @@ function createScene(){
 
     // Animation
     mixer = new THREE.AnimationMixer( scene );
+
+    stats = new Stats();
+    container.appendChild( stats.dom );
 
     document.addEventListener( 'mousemove', onDocumentMouseMove, false );
 }
@@ -89,19 +100,23 @@ function createBackground() {
 // Add new objects to the scene
 function createObjects() {
     // Create Parrot
-    var loader = new THREE.GLTFLoader();
-    loader.load( "models/gltf/Parrot.glb", function ( gltf ) {
-        var mesh = gltf.scene.children[ 0 ];
-        var clip = gltf.animations[ 0 ];
+    gltfLoader = new THREE.GLTFLoader();
 
-        for ( var i = 0; i <= 100; ++i ) {
-            var x = Math.random() * (DIST_RIGHT + DIST_LEFT) - DIST_LEFT;
-            var y = Math.random() * DIST_UP - 100;
-            var z = - Math.random() * (DIST_FRONT - DIST_BACK) - DIST_BACK;
-
-            addMorph( mesh, clip, 145, FLY_DURATION, x, y, z);
-        }
-    } );
+    modelSelection.forEach((item) => {
+        console.log(item);
+        gltfLoader.load( "models/gltf/" + item.name + ".glb", function ( gltf ) {
+            var mesh = gltf.scene.children[ 0 ];
+            var clip = gltf.animations[ 0 ];
+    
+            for ( var i = 0; i <= item.count; ++i ) {
+                var x = Math.random() * (DIST_RIGHT + DIST_LEFT) - DIST_LEFT;
+                var y = Math.random() * DIST_UP - 100;
+                var z = - Math.random() * (DIST_FRONT - DIST_BACK) - DIST_BACK;
+    
+                addMorph( mesh, clip, 145, FLY_DURATION, x, y, z);
+            }
+        } );
+    })
 }
 
 // Render in each frame
@@ -121,6 +136,8 @@ function render() {
             morph.position.x = -1 * DIST_LEFT;
         }
     }
+
+    renderer.render(scene, camera);
 };
 
 // Add morphs
