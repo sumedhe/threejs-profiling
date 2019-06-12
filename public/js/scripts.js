@@ -1,3 +1,17 @@
+var SCREEN_WIDTH = window.innerWidth;
+var SCREEN_HEIGHT = window.innerHeight;
+
+var DIST_FRONT = 1000;
+var DIST_BACK  = 0.01;
+var DIST_UP    = 500;
+var DIST_DOWN  = 250;
+var DIST_LEFT  = 1000;
+var DIST_RIGHT = 1000;
+
+var NO_OF_PARROTS = 50;
+var FLY_SPEED     = 3;
+var FLY_DURATION  = 0.7;
+
 var scene, camera, renderer;
 var cubeTexture;
 
@@ -7,25 +21,16 @@ var mouseY = 0;
 var windowHalfX = window.innerWidth / 2;
 var windowHalfY = window.innerHeight / 2;
 
-var spheres = [];
+var spheres, mixer, morphs = [];
+
+var clock = new THREE.Clock();
 
 init();
 animate();
 
-
 // Initialize environment
 function init() {
-    scene              = new THREE.Scene();
-    camera             = new THREE.PerspectiveCamera( 60, window.innerWidth / window.innerHeight, 0.01, 100 );
-    camera.position.z  = 3;
-    camera.focalLength = 3;
-    renderer           = new THREE.WebGLRenderer();
-
-    renderer.setSize( window.innerWidth, window.innerHeight );
-    document.body.appendChild( renderer.domElement );
-
-    document.addEventListener( 'mousemove', onDocumentMouseMove, false );
-
+    createScene();
     createBackground();
     createObjects();
 };
@@ -37,11 +42,41 @@ function animate() {
 	renderer.render(scene, camera);
 };
 
+function createScene(){
+    scene              = new THREE.Scene();
+    camera             = new THREE.PerspectiveCamera( 60, SCREEN_WIDTH / SCREEN_HEIGHT, DIST_BACK, DIST_FRONT + 1000 );
+    camera.position.z  = 3;
+    camera.focalLength = 3;
+
+    // Setup renderer
+    renderer             = new THREE.WebGLRenderer();
+    renderer.gammaOutput = true;
+    renderer.gammaFactor = 1.5;
+    renderer.autoClear   = false;
+    renderer.setSize( window.innerWidth, window.innerHeight );
+    document.body.appendChild( renderer.domElement );
+
+    // Add lights
+    var ambient = new THREE.AmbientLight( 0x444444 );
+    scene.add( ambient );
+    
+    var light = new THREE.SpotLight( 0xffffff, 1, 0, Math.PI / 2 );
+    light.position.set( 0, 1500, 1000 );
+    light.target.position.set( 0, 0, 0 );
+    scene.add( light );
+
+
+    // Animation
+    mixer = new THREE.AnimationMixer( scene );
+
+    document.addEventListener( 'mousemove', onDocumentMouseMove, false );
+}
+
 // Crate background environment
 function createBackground() {
-    var path = "textures/cube/park2/";
+    var path   = "textures/cube/park2/";
     var format = '.jpg';
-    var urls = [
+    var urls   = [
         path + 'px' + format, path + 'nx' + format,
         path + 'py' + format, path + 'ny' + format,
         path + 'pz' + format, path + 'nz' + format
@@ -53,21 +88,20 @@ function createBackground() {
 
 // Add new objects to the scene
 function createObjects() {
-    // Create spheres
-    var geometry = new THREE.SphereBufferGeometry( 0.1, 32, 16 );
-    var material = new THREE.MeshBasicMaterial( { color: 0xffffff, envMap: cubeTexture } );
+    // Create Parrot
+    var loader = new THREE.GLTFLoader();
+    loader.load( "models/gltf/Parrot.glb", function ( gltf ) {
+        var mesh = gltf.scene.children[ 0 ];
+        var clip = gltf.animations[ 0 ];
 
-    for ( var i = 0; i < 500; i ++ ) {
-        var mesh = new THREE.Mesh( geometry, material );
-        mesh.position.x = Math.random() * 10 - 5;
-        mesh.position.y = Math.random() * 10 - 5;
-        mesh.position.z = Math.random() * 10 - 5;
+        for ( var i = 0; i <= 100; ++i ) {
+            var x = Math.random() * (DIST_RIGHT + DIST_LEFT) - DIST_LEFT;
+            var y = Math.random() * DIST_UP - 100;
+            var z = - Math.random() * (DIST_FRONT - DIST_BACK) - DIST_BACK;
 
-        mesh.scale.x = mesh.scale.y = mesh.scale.z = Math.random() * 3 + 1;
-
-        scene.add( mesh );
-        spheres.push( mesh );
-    }
+            addMorph( mesh, clip, 145, FLY_DURATION, x, y, z);
+        }
+    } );
 }
 
 // Render in each frame
@@ -77,14 +111,37 @@ function render() {
     camera.position.y += ( - mouseY - camera.position.y ) * .05;
     camera.lookAt( scene.position );
 
-    // Update sphere movements
-    var timer = 0.0001 * Date.now();
-    for ( var i = 0, il = spheres.length; i < il; i ++ ) {
-        var sphere = spheres[ i ];
-        sphere.position.x = 5 * Math.cos( timer + i );
-        sphere.position.y = 5 * Math.sin( timer + i * 1.1 );
+    // Update Parrot
+    var delta = clock.getDelta();
+    mixer.update( delta );
+    for ( var i = 0; i < morphs.length; i ++ ) {
+        var morph = morphs[ i ];
+        morph.translateZ(FLY_SPEED);
+        if (morph.position.x > DIST_RIGHT) {
+            morph.position.x = -1 * DIST_LEFT;
+        }
     }
 };
+
+// Add morphs
+function addMorph( mesh, clip, speed, duration, x, y, z ) {
+    mesh          = mesh.clone();
+    mesh.material = mesh.material.clone();
+    mesh.speed    = speed;
+
+    mixer.clipAction( clip, mesh ).
+        setDuration( duration ).
+        startAt( - duration * Math.random() ).
+        play();
+
+    mesh.position.set( x, y, z );
+    mesh.rotation.y    = Math.PI / 2;
+    mesh.castShadow    = true;
+    mesh.receiveShadow = true;
+    scene.add( mesh );
+
+    morphs.push( mesh );
+}
 
 function onDocumentMouseMove( event ) {
     mouseX = ( event.clientX - windowHalfX ) / 100;
