@@ -5,11 +5,11 @@ var DIST_FRONT = 1000;
 var DIST_BACK  = 0.01;
 var DIST_UP    = 500;
 var DIST_DOWN  = 250;
-var DIST_LEFT  = 1000;
-var DIST_RIGHT = 1000;
+var DIST_LEFT  = 2000;
+var DIST_RIGHT = 2000;
 
 var NO_OF_PARROTS = 50;
-var FLY_SPEED     = 3;
+var FLY_SPEED     = 4;
 var FLY_DURATION  = 0.7;
 
 var scene, camera, renderer;
@@ -25,7 +25,8 @@ var spheres, mixer, morphs = [];
 
 var modelSelection = [
     { name: "Flamingo", count: 20 },
-    { name: "Parrot", count: 20 }
+    { name: "Parrot", count: 20 },
+    { name: "Horse", count: 10, onGround: true },
 ]
 
 var clock = new THREE.Clock();
@@ -113,6 +114,10 @@ function createObjects() {
                 var y = Math.random() * DIST_UP - 100;
                 var z = - Math.random() * (DIST_FRONT - DIST_BACK) - DIST_BACK;
     
+                if (item.onGround) {
+                    y = -DIST_DOWN;
+                }
+
                 addMorph( mesh, clip, 145, FLY_DURATION, x, y, z);
             }
         } );
