@@ -1,5 +1,5 @@
 var scene, camera, renderer;
-
+var cubeTexture;
 
 var mouseX = 0;
 var mouseY = 0;
@@ -7,7 +7,6 @@ var mouseY = 0;
 var windowHalfX = window.innerWidth / 2;
 var windowHalfY = window.innerHeight / 2;
 
-var cube;
 var spheres = [];
 
 init();
@@ -48,28 +47,43 @@ function createBackground() {
         path + 'pz' + format, path + 'nz' + format
     ];
 
-    var textureCube = new THREE.CubeTextureLoader().load( urls );
-    scene.background = textureCube;
+    cubeTexture = new THREE.CubeTextureLoader().load( urls );
+    scene.background = cubeTexture;
 }
 
 // Add new objects to the scene
 function createObjects() {
-    var geometry = new THREE.BoxGeometry( 1, 1, 1 );
-    var material = new THREE.MeshBasicMaterial( { color: 0x00ff00 } );
+    // Create spheres
+    var geometry = new THREE.SphereBufferGeometry( 0.1, 32, 16 );
+    var material = new THREE.MeshBasicMaterial( { color: 0xffffff, envMap: cubeTexture } );
 
-    cube = new THREE.Mesh( geometry, material );
-    scene.add( cube );
+    for ( var i = 0; i < 500; i ++ ) {
+        var mesh = new THREE.Mesh( geometry, material );
+        mesh.position.x = Math.random() * 10 - 5;
+        mesh.position.y = Math.random() * 10 - 5;
+        mesh.position.z = Math.random() * 10 - 5;
+
+        mesh.scale.x = mesh.scale.y = mesh.scale.z = Math.random() * 3 + 1;
+
+        scene.add( mesh );
+        spheres.push( mesh );
+    }
 }
 
 // Render in each frame
 function render() {
-	cube.rotation.x += 0.1;
-    cube.rotation.y += 0.1;
-    
     // Update camera position
     camera.position.x += ( mouseX - camera.position.x ) * .05;
     camera.position.y += ( - mouseY - camera.position.y ) * .05;
     camera.lookAt( scene.position );
+
+    // Update sphere movements
+    var timer = 0.0001 * Date.now();
+    for ( var i = 0, il = spheres.length; i < il; i ++ ) {
+        var sphere = spheres[ i ];
+        sphere.position.x = 5 * Math.cos( timer + i );
+        sphere.position.y = 5 * Math.sin( timer + i * 1.1 );
+    }
 };
 
 function onDocumentMouseMove( event ) {
